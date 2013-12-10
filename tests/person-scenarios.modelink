@@ -1,0 +1,150 @@
+metamodel Teams {
+  class Person {
+    attribute name : string;
+    attribute age : int;
+    attribute title : string;
+    attribute gender : Gender;
+  }
+
+  class TeamMember : Person {
+    attribute role : Position;
+    reference meetings : Meeting [0-*];
+    reference team : Team;
+
+    method int : numMeetings();
+    method int : numConfMeetings();
+  }
+
+  class Meeting {
+    attribute title : string;
+    attribute day : Date;
+    attribute start : int;
+    attribute end : int;
+    attribute isConfirmed : bool;
+
+    reference participants : TeamMember [2-*];
+    reference moderator : TeamMember;
+
+    method void : cancel();
+    method void : confirm();
+    method int : numParticipants();
+    method void : shift(int);
+    method int : duration();
+    method bool : inConflict(Meeting);
+  }
+
+  class Team {
+    attribute name : string;
+    reference members : TeamMember [2-*];
+  }
+
+  class TeamMeeting : Meeting {
+    reference team : Team;
+  }
+
+  class Date {
+    attribute day : int;
+    attribute month : int;
+    attribute year : int;
+
+    method bool : isBefore(Date);
+    method bool : isAfter(Date);
+    method bool : equal(Date);
+  }
+
+  enumeration Gender { male , female }
+  enumeration Position { fullprofessor, phdstudent, postdoc, associateprofessor }
+}
+
+
+model K : Teams {
+  instance kteam : Team {
+    name = "K-TEAM";
+    members = { john, kate, jim };
+  }
+
+  instance john : TeamMember {
+    name = "John";
+    age = 0;
+    title = "research assistant";
+    gender = male;
+    role = associateprofessor;
+    meetings = { kmeeting, mlmeeting };
+    team = kteam;
+  }
+
+  instance kate : TeamMember {
+    name = "Kate";
+    age = 20;
+    title = "research assistant";
+    gender = male;
+    role = postdoc;
+    meetings = { kmeeting };
+    team = kteam;
+  }
+
+  instance jim : TeamMember {
+    name = "Jim";
+    age = 40;
+    title = "researcher";
+    gender = male;
+    role = fullprofessor;
+    meetings = { kmeeting, mlmeeting };
+    team = kteam;
+  }
+
+  instance kmeeting : TeamMeeting {
+    team = kteam;
+    title = "K Weekly Meeting";
+    day = monday;
+    start = 9;
+    end = 10;
+    isConfirmed = #symBool(a);
+    participants = { john, kate, jim };
+    moderator = jim;
+  }
+
+  instance mlmeeting : TeamMeeting {
+    team  = kteam;
+    title = "Matching logic meeting";
+    day = tuesday;
+    start = 11;
+    end = 9;
+    isConfirmed = true;
+    participants = { john };
+    moderator = jim;
+  }
+
+  instance wmeeting : TeamMeeting {
+    team  = kteam;
+    title = "Weekly meeting";
+    day = friday;
+    start = 10;
+    end = 12;
+    isConfirmed = false;
+    participants = { kate, john, jim };
+    moderator = kate;
+  }
+}
+
+
+context Person
+inv: self.age > 0
+
+context Meeting::confirm()
+pre: isConfirmed = false
+post: isConfirmed = true
+
+
+scenario one {
+  kmeeting.confirm();
+  kmeeting.confirm();
+}
+
+scenario two {
+  mlmeeting.confirm();
+}
+
+scenario three {
+  wmeeting.confirm();
+}
